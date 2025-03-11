@@ -58,7 +58,7 @@ float CalibratedSensor::getSensorAngle()
 // This filter has zero gain at electrical frequency and all integer multiples
 // So cogging effects should be completely filtered out
 void CalibratedSensor::filter_error(float* error, float &error_mean, int n_ticks, int window){
-	float window_buffer[window] = {0};
+	float window_buffer[window] = {0.0};
 	float window_sum = 0;
 	int buffer_index = 0;
 	// fill the inital window buffer
@@ -106,7 +106,7 @@ void CalibratedSensor::calibrate(FOCMotor &motor)
 	const int n_ticks = n_pos * _NPP;							      // number of positions to be sampled per mechanical rotation.  Multiple of NPP for filtering reasons (see later)
 	const int n2_ticks = 5;										      // increments between saved samples (for smoothing motion)
 	float deltaElectricalAngle = _2PI * _NPP / (n_ticks * n2_ticks);  // Electrical Angle increments for calibration steps
-	float error[n_ticks] = {0};	         							  // pointer to error array (average of forward & backward)
+	float error[n_ticks] = {0.0};	         							  // pointer to error array (average of forward & backward)
 	const int window = 5;			 // window size for moving average filter of raw error
 	// set the electric angle to 0
     float elec_angle = 0.0;
