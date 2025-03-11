@@ -1,10 +1,5 @@
 /**
- * Torque control example using voltage control loop.
- * 
- * Most of the low-end BLDC driver boards doesn't have current measurement therefore SimpleFOC offers 
- * you a way to control motor torque by setting the voltage to the motor instead hte current. 
- * 
- * This makes the BLDC motor effectively a DC motor, and you can use it in a same way.
+ * The example demonstrates the usage of the calibrated sensor object.
  */
 #include <SimpleFOC.h>
 #include <SimpleFOCDrivers.h>
@@ -16,6 +11,8 @@ MagneticSensorSPI sensor = MagneticSensorSPI(AS5048_SPI, PB6);
 BLDCMotor motor = BLDCMotor(11);
 BLDCDriver3PWM driver = BLDCDriver3PWM(PB4,PC7,PB10,PA9);
 // instantiate the calibrated sensor object
+// argument 1 - sensor object
+// argument 2 - number of samples in the LUT (default 200)
 CalibratedSensor sensor_calibrated = CalibratedSensor(sensor);
 
 // voltage set point variable
@@ -58,6 +55,7 @@ void setup() {
   // set voltage to run calibration
   sensor_calibrated.voltage_calibration = 6;
   // Running calibration
+  // it will ouptut the LUT and the zero electrical angle to the serial monitor !!!!
   sensor_calibrated.calibrate(motor); 
 
   //Serial.println("Calibrating Sensor Done.");

@@ -11,7 +11,8 @@ class CalibratedSensor: public Sensor{
 
 public:
     // constructor of class with pointer to base class sensor and driver
-    CalibratedSensor(Sensor& wrapped, int n_lut = 200);
+    CalibratedSensor(Sensor& wrapped, int n_lut = 200, float* lut = nullptr);
+
     ~CalibratedSensor();
 
     /*

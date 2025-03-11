@@ -2,9 +2,11 @@
 
 // CalibratedSensor()
 // sensor              - instance of original sensor object
-CalibratedSensor::CalibratedSensor(Sensor &wrapped, int n_lut) : _wrapped(wrapped) {
+// n_lut               - number of samples in the LUT
+// lut                 - pointer to the LUT array
+CalibratedSensor::CalibratedSensor(Sensor &wrapped, int n_lut, float* lut) : _wrapped(wrapped) {
 	this->n_lut = n_lut;
-	this->calibrationLut = new float[n_lut]();
+	this->calibrationLut = lut;
 };
 
 CalibratedSensor::~CalibratedSensor() {
@@ -51,65 +53,6 @@ float CalibratedSensor::getSensorAngle()
     return raw_angle - offset;
 }
 
-
-// find the first guess of the motor.zero_electric_angle 
-// and the sensor direction
-// updates motor.zero_electric_angle
-// updates motor.sensor_direction
-void CalibratedSensor::alignSensor(FOCMotor &motor){
-	motor.zero_electric_angle = 0;	 // Set position sensor offset
-
-	// find natural direction (this is copy of the init code)
-	// move one electrical revolution forward
-	for (int i = 0; i <= 500; i++)
-	{
-		float angle = _3PI_2 + _2PI * i / 500.0f;
-		motor.setPhaseVoltage(voltage_calibration, 0, angle);
-		_wrapped.update();
-		_delay(2);
-	}
-	// take and angle in the middle
-	_wrapped.update();
-	float mid_angle = _wrapped.getAngle();
-	// move one electrical revolution backwards
-	for (int i = 500; i >= 0; i--)
-	{
-		float angle = _3PI_2 + _2PI * i / 500.0f;
-		motor.setPhaseVoltage(voltage_calibration, 0, angle);
-		_wrapped.update();
-		_delay(2);
-	}
-	_wrapped.update();
-	float end_angle = _wrapped.getAngle();
-	motor.setPhaseVoltage(0, 0, 0);
-	_delay(200);
-
-	// determine the direction the sensor moved
-	if (mid_angle < end_angle)
-	{
-		motor.monitor_port->println("MOT: sensor_direction==CCW");
-		motor.sensor_direction = Direction::CCW;
-	}
-	else
-	{
-		motor.monitor_port->println("MOT: sensor_direction==CW");
-		motor.sensor_direction = Direction::CW;
-	}
-
-    // align the electrical phases of the motor and sensor
-    // set angle -90(270 = 3PI/2) degrees
-    motor.setPhaseVoltage(voltage_calibration, 0,  _3PI_2);
-    _delay(700);
-    // read the sensor
-    _wrapped.update();
-    motor.zero_electric_angle =  _normalizeAngle(_electricalAngle(motor.sensor_direction*_wrapped.getAngle(), motor.pole_pairs));
-    _delay(20);
-	motor.monitor_port->print("Zero Electrical Angle: ");
-	motor.monitor_port->println(motor.zero_electric_angle);
-    // stop everything
-    motor.setPhaseVoltage(0, 0, 0);
-}
-
 // Perform filtering to linearize position sensor eccentricity
 // FIR n-sample average, where n = number of samples in the window
 // This filter has zero gain at electrical frequency and all integer multiples
@@ -145,8 +88,14 @@ void CalibratedSensor::filter_error(float* error, float &error_mean, int n_ticks
 
 void CalibratedSensor::calibrate(FOCMotor &motor)
 {
-
-	motor.monitor_port->println("Starting Sensor Calibration.");
+	
+	if(this->calibrationLut != nullptr){
+		motor.monitor_port->println("Using existing LUT.");
+		return;
+	}else{
+		this->calibrationLut = new float[n_lut]();
+		motor.monitor_port->println("Starting Sensor Calibration.");
+	}
 	
     // Init inital angles
     float theta_actual = 0.0;
@@ -157,7 +106,7 @@ void CalibratedSensor::calibrate(FOCMotor &motor)
 	const int n_ticks = n_pos * _NPP;							      // number of positions to be sampled per mechanical rotation.  Multiple of NPP for filtering reasons (see later)
 	const int n2_ticks = 5;										      // increments between saved samples (for smoothing motion)
 	float deltaElectricalAngle = _2PI * _NPP / (n_ticks * n2_ticks);  // Electrical Angle increments for calibration steps
-	float error[n_ticks] = {0};	         							// pointer to error array (average of forward & backward)
+	float error[n_ticks] = {0};	         							  // pointer to error array (average of forward & backward)
 	const int window = 5;			 // window size for moving average filter of raw error
 	// set the electric angle to 0
     float elec_angle = 0.0;
@@ -166,11 +115,24 @@ void CalibratedSensor::calibrate(FOCMotor &motor)
 	// and the sensor direction
 	// updates motor.zero_electric_angle
 	// updates motor.sensor_direction
-	this->alignSensor(motor);
+	bool skip_align_current_sense = false;
+	if(motor.current_sense != nullptr){
+		skip_align_current_sense = motor.current_sense->skip_align;
+		motor.current_sense->skip_align = true;
+	}
+	motor.linkSensor(&this->_wrapped);
+	if(!motor.initFOC()){
+		motor.monitor_port->println("Failed to align the sensor.");
+		return;
+	}
+	if(motor.current_sense != nullptr){
+		motor.current_sense->skip_align = skip_align_current_sense;
+	}
+	motor.linkSensor(this);
 
 	// Set voltage angle to zero, wait for rotor position to settle
 	// keep the motor in position while getting the initial positions
-	motor.setPhaseVoltage(voltage_calibration, 0, elec_angle);
+	motor.setPhaseVoltage(1, 0, elec_angle);
 	_delay(1000);
 	_wrapped.update();
 	float theta_init = _wrapped.getAngle();
@@ -185,8 +147,9 @@ void CalibratedSensor::calibrate(FOCMotor &motor)
 	/*
 	forwards rotation
 	*/
-	motor.monitor_port->println("Rotating forwards");
-	int k = 0;
+	motor.monitor_port->print("Rotating: ");
+	motor.monitor_port->println( motor.sensor_direction == Direction::CCW ? "CCW" : "CW" );
+	float zero_angle_prev = 0.0;
 	for (int i = 0; i < n_ticks; i++)
 	{
 		for (int j = 0; j < n2_ticks; j++) // move to the next location
@@ -197,17 +160,22 @@ void CalibratedSensor::calibrate(FOCMotor &motor)
 		}
 
 		// delay to settle in position before taking a position sample
-		_delay(50);
+		_delay(30);
 		_wrapped.update();
 		// calculate the error
 		theta_actual = motor.sensor_direction*(_wrapped.getAngle() - theta_init);
         error[i] = 0.5 * (theta_actual - elec_angle / _NPP);
 
-		motor.monitor_port->println(2.0*error[i]*180/3.14);
-
 		// calculate the current electrical zero angle
 		float zero_angle = (motor.sensor_direction*_wrapped.getMechanicalAngle() * _NPP ) - (elec_angle + _PI_2);
 		zero_angle = _normalizeAngle(zero_angle);
+		// remove the 2PI jumps
+		if(zero_angle - zero_angle_prev > _PI){
+			zero_angle = zero_angle - _2PI;
+		}else if(zero_angle - zero_angle_prev < -_PI){
+			zero_angle = zero_angle + _2PI;
+		}
+		zero_angle_prev = zero_angle;
 		avg_elec_angle += zero_angle/n_ticks;
 	}
 
@@ -216,8 +184,8 @@ void CalibratedSensor::calibrate(FOCMotor &motor)
 	/*
 	backwards rotation
 	*/
-	k = 0;
-	motor.monitor_port->println("Rotating backwards");
+	motor.monitor_port->print("Rotating: ");
+	motor.monitor_port->println( motor.sensor_direction == Direction::CCW ? "CW" : "CCW" );
 	for (int i = n_ticks - 1; i >= 0; i--)
 	{
 		for (int j = 0; j < n2_ticks; j++) // move to the next location
@@ -228,78 +196,89 @@ void CalibratedSensor::calibrate(FOCMotor &motor)
 		}
 
 		// delay to settle in position before taking a position sample
-		_delay(50);
+		_delay(30);
 		_wrapped.update();
 		// calculate the error
 		theta_actual = motor.sensor_direction*(_wrapped.getAngle() - theta_init);
         error[i] += 0.5 * (theta_actual - elec_angle / _NPP);
-
-		// display the errror	
-		motor.monitor_port->println(error[i]*180/3.14);
-
 		// calculate the current electrical zero angle
 		float zero_angle = (motor.sensor_direction*_wrapped.getMechanicalAngle() * _NPP ) - (elec_angle + _PI_2);
 		zero_angle = _normalizeAngle(zero_angle);
-		// zero_angle = zero_angle > _PI ? zero_angle - 2*_PI : zero_angle;
+		// remove the 2PI jumps
+		if(zero_angle - zero_angle_prev > _PI){
+			zero_angle = zero_angle - _2PI;
+		}else if(zero_angle - zero_angle_prev < -_PI){
+			zero_angle = zero_angle + _2PI;
+		}
+		zero_angle_prev = zero_angle;
 		avg_elec_angle += zero_angle/n_ticks;
 	}
 
-	// // get post calibration mechanical angle.
-	// _wrapped.update();
-	// float theta_absolute_post = _wrapped.getMechanicalAngle();
+	// get post calibration mechanical angle.
+	_wrapped.update();
+	float theta_absolute_post = _wrapped.getMechanicalAngle();
 
-	// // done with the measurement
-	// motor.setPhaseVoltage(0, 0, 0);
+	// done with the measurement
+	motor.setPhaseVoltage(0, 0, 0);
 
-	// // raw offset from initial position in absolute radians between 0-2PI
-	// float raw_offset = (theta_absolute_init + theta_absolute_post) / 2;
+	// raw offset from initial position in absolute radians between 0-2PI
+	float raw_offset = (theta_absolute_init + theta_absolute_post) / 2;
 
-	// // calculating the average zero electrical angle from the forward calibration.
-	// motor.zero_electric_angle = _normalizeAngle(avg_elec_angle / (2.0));
-	// motor.monitor_port->print("Average Zero Electrical Angle: ");
-	// motor.monitor_port->println(motor.zero_electric_angle);
-	// _delay(1000);
+	// calculating the average zero electrical angle from the forward calibration.
+	motor.zero_electric_angle = _normalizeAngle(avg_elec_angle / (2.0));
+	motor.monitor_port->print("Average Zero Electrical Angle: ");
+	motor.monitor_port->println(motor.zero_electric_angle);
+	_delay(1000);
 
-	// // Perform filtering to linearize position sensor eccentricity
-	// // FIR n-sample average, where n = number of samples in one electrical cycle
-	// // This filter has zero gain at electrical frequency and all integer multiples
-	// // So cogging effects should be completely filtered out
-	// float error_mean = 0.0;
-	// this->filter_error(error, error_mean, n_ticks, window);
+	// Perform filtering to linearize position sensor eccentricity
+	// FIR n-sample average, where n = number of samples in one electrical cycle
+	// This filter has zero gain at electrical frequency and all integer multiples
+	// So cogging effects should be completely filtered out
+	float error_mean = 0.0;
+	this->filter_error(error, error_mean, n_ticks, window);
 
-	// _delay(1000);
-	// // calculate offset index
-	// int index_offset = floor((float)n_lut * raw_offset / _2PI);
-	// float dn = n_ticks / (float)n_lut;
+	_delay(1000);
+	// calculate offset index
+	int index_offset = floor((float)n_lut * raw_offset / _2PI);
+	float dn = n_ticks / (float)n_lut;
 
-	// motor.monitor_port->println("Constructing LUT: ");
-	// _delay(1000);
-	// // Build Look Up Table
-	// for (int i = 0; i < n_lut; i++)
-	// {
-	// 	int ind = index_offset + i*motor.sensor_direction;
-	// 	if (ind > (n_lut - 1)) ind -= n_lut;
-	// 	if (ind < 0) ind += n_lut;
-	// 	calibrationLut[ind] = (float)(error[(int)(i * dn)] - error_mean); 
-	// 	// negate the error if the sensor is in the opposite direction
-	// 	calibrationLut[ind] =  motor.sensor_direction* calibrationLut[ind];
-	// }
-	// motor.monitor_port->println("Calibration LUT: ");
-	// _delay(1000);
+	motor.monitor_port->println("Constructing LUT: ");
+	_delay(1000);
+	// Build Look Up Table
+	for (int i = 0; i < n_lut; i++)
+	{
+		int ind = index_offset + i*motor.sensor_direction;
+		if (ind > (n_lut - 1)) ind -= n_lut;
+		if (ind < 0) ind += n_lut;
+		calibrationLut[ind] = (float)(error[(int)(i * dn)] - error_mean); 
+		// negate the error if the sensor is in the opposite direction
+		calibrationLut[ind] =  motor.sensor_direction * calibrationLut[ind];
+	}
+	motor.monitor_port->println("Calibration LUT: ");
+	_delay(1000);
 
-	// for (int i=0;i < n_lut; i++){
-	// 	motor.monitor_port->println(calibrationLut[i]*180.0/3.14, 5);
-	// 	_delay(1);
-	// }
+	// Display the LUT
+	motor.monitor_port->print("float calibrationLut[");
+	motor.monitor_port->print(n_lut);
+	motor.monitor_port->println("] = {");
+	_delay(100); 
+	for (int i=0;i < n_lut; i++){
+		motor.monitor_port->print(calibrationLut[i],6);
+		if(i < n_lut - 1) motor.monitor_port->print(", ");
+		_delay(1);
+	}
+	motor.monitor_port->println("};");
+	_delay(1000);
 
+	// Display the zero electrical angle
+	motor.monitor_port->print("float zero_electric_angle = ");
+	motor.monitor_port->print(motor.zero_electric_angle,6);
+	motor.monitor_port->println(";");
 
-	// de-allocate memory
-	// delete error_filt;
-	// delete error;
-	// delete raw_b;
-	// delete error_b;
-	// delete raw_f;
-	// delete error_f;
+	// Display the sensor direction
+	motor.monitor_port->print("Direction sensor_direction = ");
+	motor.monitor_port->println(motor.sensor_direction == Direction::CCW ? "Direction::CCW;" : "Direction::CW;");
+	_delay(1000);
 
 	motor.monitor_port->println("Sensor Calibration Done.");
 }
