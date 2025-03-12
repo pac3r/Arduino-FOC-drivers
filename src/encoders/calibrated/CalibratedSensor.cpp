@@ -188,10 +188,10 @@ void CalibratedSensor::calibrate(FOCMotor &motor, float* lut, float zero_electri
 		zero_angle_prev = zero_angle;
 		avg_elec_angle += zero_angle/n_ticks;
 
-		motor.monitor_port->print(">error:");
-		motor.monitor_port->println(zero_angle);
-		motor.monitor_port->print(">zero_angle:");
-		motor.monitor_port->println(avg_elec_angle);
+		// motor.monitor_port->print(">zero:");
+		// motor.monitor_port->println(zero_angle);
+		// motor.monitor_port->print(">zero_average:");
+		// motor.monitor_port->println(avg_elec_angle/2.0);
 	}
 	_delay(2000);
 
@@ -227,10 +227,10 @@ void CalibratedSensor::calibrate(FOCMotor &motor, float* lut, float zero_electri
 		zero_angle_prev = zero_angle;
 		avg_elec_angle += zero_angle/n_ticks;
 
-		motor.monitor_port->print(">error:");
-		motor.monitor_port->println(zero_angle);
-		motor.monitor_port->print(">zero_angle:");
-		motor.monitor_port->println(avg_elec_angle);
+		// motor.monitor_port->print(">zero:");
+		// motor.monitor_port->println(zero_angle);
+		// motor.monitor_port->print(">zero_average:");
+		// motor.monitor_port->println(avg_elec_angle/2.0);
 	}
 
 	// get post calibration mechanical angle.
@@ -261,7 +261,7 @@ void CalibratedSensor::calibrate(FOCMotor &motor, float* lut, float zero_electri
 	int index_offset = floor((float)n_lut * raw_offset / _2PI);
 	float dn = n_ticks / (float)n_lut;
 
-	motor.monitor_port->println("Constructing LUT: ");
+	motor.monitor_port->println("Constructing LUT.");
 	_delay(1000);
 	// Build Look Up Table
 	for (int i = 0; i < n_lut; i++)
@@ -273,7 +273,7 @@ void CalibratedSensor::calibrate(FOCMotor &motor, float* lut, float zero_electri
 		// negate the error if the sensor is in the opposite direction
 		calibrationLut[ind] =  motor.sensor_direction * calibrationLut[ind];
 	}
-	motor.monitor_port->println("Calibration LUT: ");
+	motor.monitor_port->println("");
 	_delay(1000);
 
 	// Display the LUT
