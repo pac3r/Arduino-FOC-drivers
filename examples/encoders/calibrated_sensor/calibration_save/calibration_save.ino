@@ -1,22 +1,28 @@
 /**
- * Torque control example using voltage control loop.
- * 
- * Most of the low-end BLDC driver boards doesn't have current measurement therefore SimpleFOC offers 
- * you a way to control motor torque by setting the voltage to the motor instead hte current. 
- * 
- * This makes the BLDC motor effectively a DC motor, and you can use it in a same way.
+ * The example demonstrates the calibration of the magnetic sensor with the calibration procedure and saving the calibration data. 
+ * So that the calibration procedure does not have to be run every time the motor is powered up.
  */
+
 #include <SimpleFOC.h>
 #include <SimpleFOCDrivers.h>
 #include "encoders/calibrated/CalibratedSensor.h"
 
+// fill this array with the calibration values outputed by the calibration procedure
+float calibrationLut[50] = {0};
+float zero_electric_angle = 0;
+Direction sensor_direction = Direction::CW;
+
 // magnetic sensor instance - SPI
-MagneticSensorSPI sensor = MagneticSensorSPI(AS5048_SPI, PB6);
-// BLDC motor & driver instance
-BLDCMotor motor = BLDCMotor(11);
-BLDCDriver3PWM driver = BLDCDriver3PWM(PB4,PC7,PB10,PA9);
+MagneticSensorSPI sensor = MagneticSensorSPI(AS5147_SPI, 14);
+// Stepper motor & driver instance
+StepperMotor motor = StepperMotor(50);
+StepperDriver4PWM driver = StepperDriver4PWM(10, 9, 5, 6,8);
 // instantiate the calibrated sensor object
-CalibratedSensor sensor_calibrated = CalibratedSensor(sensor);
+// instantiate the calibrated sensor object
+// argument 1 - sensor object
+// argument 2 - number of samples in the LUT (default 200)
+// argument 3 - pointer to the LUT array (defualt nullptr)
+CalibratedSensor sensor_calibrated = CalibratedSensor(sensor, 50);
 
 // voltage set point variable
 float target_voltage = 2;
@@ -27,10 +33,6 @@ Commander command = Commander(Serial);
 void doTarget(char* cmd) { command.scalar(&target_voltage, cmd); }
 
 void setup() {
-
-  SPI.setMISO(PB14);
-  SPI.setMOSI(PB15);
-  SPI.setSCLK(PB13);
 
   sensor.init();
   // Link motor to sensor
@@ -55,12 +57,10 @@ void setup() {
   // initialize motor
   motor.init();
 
-  // set voltage to run calibration
-  sensor_calibrated.voltage_calibration = 6;
   // Running calibration
-  sensor_calibrated.calibrate(motor); 
+  // the function will setup everything for the provided calibration LUT
+  sensor_calibrated.calibrate(motor, calibrationLut, zero_electric_angle, sensor_direction);
 
-  //Serial.println("Calibrating Sensor Done.");
   // Linking sensor to motor object
   motor.linkSensor(&sensor_calibrated);
 
