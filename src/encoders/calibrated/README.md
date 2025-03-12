@@ -84,7 +84,7 @@ Please see the more complete [example](https://github.com/simplefoc/Arduino-FOC-
 ## EDIT March 2025
 
 The code has been rewritten to reduce its memory footprint and allow more flexible Lookup table (LUT) sizing. 
-Additionally, the calibrated sensor class now supports providing the saved LUT as a parameter to the constructor. This allows you to save the LUT and load it on startup to avoid recalibration on each startup.
+Additionally, the calibrated sensor class now supports providing the saved LUT as a paramer for calibration. This allows you to save the LUT and load it on startup to avoid recalibration on each startup.
 
 The LUT and sensor's zero angle and direction are outputed by the calibration process to the Serial terminal. So you can copy and paste them into your code.
 
@@ -96,24 +96,21 @@ Your code will look something like this:
 const N_LUT = 100;
 // Lookup table that has been ouptut from the calibration process
 float calibrationLut[N_LUT] = {...};
+float zero_eletrical_angle = 0.0;
+Direction sensor_direction = Direction::CW;
 
 // provide the sensor class and the number of points in the LUT
-CalibratedSensor sensor_calibrated = CalibratedSensor(sensor, N_LUT, calibrationLut);
+CalibratedSensor sensor_calibrated = CalibratedSensor(sensor, N_LUT);
 
 ... 
 
 void setup() {
   ...
-  // as LUT is provided this function does not need to be called
-  sensor_calibrated.calibrate(motor); 
+  // as LUT is provided to this function
+  sensor_calibrated.calibrate(motor, calibrationLut, zero_eletrical_angle, sensor_direction);
   ...
 
   motor.linkSensor(&sensor_calibrated);
-
-  
-  // write the sensor direction and zero electrical angle outputed by the calibration  
-  motor.sensor_direction = Direction::CW; // replace with the value outputed by the calibration
-  motor.zero_electric_angle = 0.0;        // replace with the value outputed by the calibration
 
   ... 
   motor.initFOC();
@@ -122,3 +119,8 @@ void setup() {
 
 
 ```
+
+## Future work
+
+- Reduce the LUT size by using a more efficient LUT type - maybe pass to uint16_t
+- Use a more eficient LUT interpolation method - maybe a polynomial interpolation

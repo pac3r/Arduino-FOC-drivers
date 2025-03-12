@@ -8,7 +8,9 @@
 #include "encoders/calibrated/CalibratedSensor.h"
 
 // fill this array with the calibration values outputed by the calibration procedure
-float calibrationLut[100] = {0};
+float calibrationLut[50] = {0};
+float zero_electric_angle = 0;
+Direction sensor_direction = Direction::CW;
 
 // magnetic sensor instance - SPI
 MagneticSensorSPI sensor = MagneticSensorSPI(AS5147_SPI, 14);
@@ -20,7 +22,7 @@ StepperDriver4PWM driver = StepperDriver4PWM(10, 9, 5, 6,8);
 // argument 1 - sensor object
 // argument 2 - number of samples in the LUT (default 200)
 // argument 3 - pointer to the LUT array (defualt nullptr)
-CalibratedSensor sensor_calibrated = CalibratedSensor(sensor, 100, calibrationLut);
+CalibratedSensor sensor_calibrated = CalibratedSensor(sensor, 50);
 
 // voltage set point variable
 float target_voltage = 2;
@@ -56,15 +58,11 @@ void setup() {
   motor.init();
 
   // Running calibration
-  // as the Lookup table (LUT) has been provided as an argument this function will not do anything
-  sensor_calibrated.calibrate(motor); 
+  // the function will setup everything for the provided calibration LUT
+  sensor_calibrated.calibrate(motor, calibrationLut, zero_electric_angle, sensor_direction);
 
   // Linking sensor to motor object
   motor.linkSensor(&sensor_calibrated);
-
-  // write the sensor direction and zero electrical angle outputed by the calibration  
-  motor.sensor_direction = Direction::CW; // replace with the value outputed by the calibration
-  motor.zero_electric_angle = 0.0;        // replace with the value outputed by the calibration
 
   // calibrated init FOC
   motor.initFOC();

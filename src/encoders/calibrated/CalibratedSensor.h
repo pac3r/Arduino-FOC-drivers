@@ -11,7 +11,7 @@ class CalibratedSensor: public Sensor{
 
 public:
     // constructor of class with pointer to base class sensor and driver
-    CalibratedSensor(Sensor& wrapped, int n_lut = 200, float* lut = nullptr);
+    CalibratedSensor(Sensor& wrapped, int n_lut = 200);
 
     ~CalibratedSensor();
 
@@ -23,11 +23,10 @@ public:
     /**
     * Calibrate method computes the LUT for the correction
     */
-    virtual void calibrate(FOCMotor& motor);
+    virtual void calibrate(FOCMotor& motor, float* lut = nullptr, float zero_electric_angle = 0.0, Direction senor_direction= Direction::CW);
 
     // voltage to run the calibration: user input
-    float voltage_calibration = 1;                        
-    int bucket_offset = 0;
+    float voltage_calibration = 1;    
 protected:
 
     /**
@@ -48,7 +47,7 @@ protected:
     void alignSensor(FOCMotor &motor);
     void filter_error(float* error, float &error_mean, int n_ticks, int window);
     
-     // lut size, currently constan. Perhaps to be made variable by user?
+     // lut size - settable by the user
     int  n_lut { 200 } ;
     // create pointer for lut memory 
     // depending on the size of the lut

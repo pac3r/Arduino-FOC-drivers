@@ -3,10 +3,8 @@
 // CalibratedSensor()
 // sensor              - instance of original sensor object
 // n_lut               - number of samples in the LUT
-// lut                 - pointer to the LUT array
-CalibratedSensor::CalibratedSensor(Sensor &wrapped, int n_lut, float* lut) : _wrapped(wrapped) {
+CalibratedSensor::CalibratedSensor(Sensor &wrapped, int n_lut) : _wrapped(wrapped) {
 	this->n_lut = n_lut;
-	this->calibrationLut = lut;
 };
 
 CalibratedSensor::~CalibratedSensor() {
@@ -36,7 +34,7 @@ float CalibratedSensor::getSensorAngle()
 	// Calculate the resolution of the LUT in radians
     float lut_resolution = _2PI / n_lut;
     // Calculate LUT index
-    int lut_index = raw_angle / lut_resolution + bucket_offset;
+    int lut_index = raw_angle / lut_resolution;
 
     // Get calibration values from the LUT
     float y0 = calibrationLut[lut_index];
@@ -86,49 +84,59 @@ void CalibratedSensor::filter_error(float* error, float &error_mean, int n_ticks
 
 }
 
-void CalibratedSensor::calibrate(FOCMotor &motor)
+void CalibratedSensor::calibrate(FOCMotor &motor, float* lut, float zero_electric_angle, Direction senor_direction)
 {
-	
-	if(this->calibrationLut != nullptr){
-		motor.monitor_port->println("Using existing LUT.");
+	// if the LUT is already defined, skip the calibration
+	if(lut != nullptr){
+		motor.monitor_port->println("Using the provided LUT.");
+		motor.zero_electric_angle = zero_electric_angle;
+		motor.sensor_direction = senor_direction;
+		this->calibrationLut = lut;
 		return;
 	}else{
 		this->calibrationLut = new float[n_lut]();
 		motor.monitor_port->println("Starting Sensor Calibration.");
 	}
+
+	// Calibration variables
 	
     // Init inital angles
     float theta_actual = 0.0;
     float avg_elec_angle = 0.0;
+	// set the inital electric angle to 0
+    float elec_angle = 0.0;
 
+	// Calibration parameters
+	// The motor will take a n_pos samples per electrical cycle
+	// which amounts to n_ticks (n_pos * motor.pole_pairs) samples per mechanical rotation
+	// Additionally, the motor will take n2_ticks steps to reach any of the n_ticks posiitons
+	// incrementing the electrical angle by deltaElectricalAngle each time
 	int n_pos = 5;
 	int _NPP = motor.pole_pairs;								      // number of pole pairs which is user input
 	const int n_ticks = n_pos * _NPP;							      // number of positions to be sampled per mechanical rotation.  Multiple of NPP for filtering reasons (see later)
 	const int n2_ticks = 5;										      // increments between saved samples (for smoothing motion)
 	float deltaElectricalAngle = _2PI * _NPP / (n_ticks * n2_ticks);  // Electrical Angle increments for calibration steps
-	float error[n_ticks] = {0.0};	         							  // pointer to error array (average of forward & backward)
-	const int window = 5;			 // window size for moving average filter of raw error
-	// set the electric angle to 0
-    float elec_angle = 0.0;
+	float error[n_ticks] = {0.0};	         						  // pointer to error array (average of forward & backward)
+	// The fileter window size is set to n_pos - one electrical cycle 
+	// important for cogging filtering !!!
+	const int window = n_pos; // window size for moving average filter of raw error
+	
 
 	// find the first guess of the motor.zero_electric_angle 
 	// and the sensor direction
 	// updates motor.zero_electric_angle
 	// updates motor.sensor_direction
-	bool skip_align_current_sense = false;
-	if(motor.current_sense != nullptr){
-		skip_align_current_sense = motor.current_sense->skip_align;
-		motor.current_sense->skip_align = true;
-	}
+	// temporarily unlink the sensor and current sense
+	CurrentSense *current_sense = motor.current_sense;
+	motor.current_sense = nullptr;
 	motor.linkSensor(&this->_wrapped);
 	if(!motor.initFOC()){
 		motor.monitor_port->println("Failed to align the sensor.");
 		return;
 	}
-	if(motor.current_sense != nullptr){
-		motor.current_sense->skip_align = skip_align_current_sense;
-	}
+	// link back the sensor and current sense
 	motor.linkSensor(this);
+	motor.linkCurrentSense(current_sense);
 
 	// Set voltage angle to zero, wait for rotor position to settle
 	// keep the motor in position while getting the initial positions
@@ -177,8 +185,12 @@ void CalibratedSensor::calibrate(FOCMotor &motor)
 		}
 		zero_angle_prev = zero_angle;
 		avg_elec_angle += zero_angle/n_ticks;
-	}
 
+		motor.monitor_port->print(">error:");
+		motor.monitor_port->println(zero_angle);
+		motor.monitor_port->print(">zero_angle:");
+		motor.monitor_port->println(avg_elec_angle);
+	}
 	_delay(2000);
 
 	/*
@@ -212,6 +224,11 @@ void CalibratedSensor::calibrate(FOCMotor &motor)
 		}
 		zero_angle_prev = zero_angle;
 		avg_elec_angle += zero_angle/n_ticks;
+
+		motor.monitor_port->print(">error:");
+		motor.monitor_port->println(zero_angle);
+		motor.monitor_port->print(">zero_angle:");
+		motor.monitor_port->println(avg_elec_angle);
 	}
 
 	// get post calibration mechanical angle.
