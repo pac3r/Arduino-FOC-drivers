@@ -1,12 +1,12 @@
-#include "HybridStepperMotor.h"
+#include "HybridStepperMotorOld.h"
 #include "./communication/SimpleFOCDebug.h"
 
-// HybridStepperMotor(int pp)
+// HybridStepperMotorOld(int pp)
 // - pp            - pole pair number
 // - R             - motor phase resistance
 // - KV            - motor kv rating (rmp/v)
 // - L             - motor phase inductance [H]
-HybridStepperMotor::HybridStepperMotor(int pp, float _R, float _KV, float _inductance)
+HybridStepperMotorOld::HybridStepperMotorOld(int pp, float _R, float _KV, float _inductance)
     : FOCMotor()
 {
   // number od pole pairs
@@ -27,13 +27,13 @@ HybridStepperMotor::HybridStepperMotor(int pp, float _R, float _KV, float _induc
 /**
   Link the driver which controls the motor
 */
-void HybridStepperMotor::linkDriver(BLDCDriver *_driver)
+void HybridStepperMotorOld::linkDriver(BLDCDriver *_driver)
 {
   driver = _driver;
 }
 
 // init hardware pins
-int HybridStepperMotor::init()
+int HybridStepperMotorOld::init()
 {
   if (!driver || !driver->initialized)
   {
@@ -74,7 +74,7 @@ int HybridStepperMotor::init()
 }
 
 // disable motor driver
-void HybridStepperMotor::disable()
+void HybridStepperMotorOld::disable()
 {
   // set zero to PWM
   driver->setPwm(0, 0, 0);
@@ -84,7 +84,7 @@ void HybridStepperMotor::disable()
   enabled = 0;
 }
 // enable motor driver
-void HybridStepperMotor::enable()
+void HybridStepperMotorOld::enable()
 {
   // disable enable
   driver->enable();
@@ -97,7 +97,7 @@ void HybridStepperMotor::enable()
 /**
  * FOC functions
  */
-int HybridStepperMotor::initFOC()
+int HybridStepperMotorOld::initFOC()
 {
   int exit_flag = 1;
 
@@ -132,7 +132,7 @@ int HybridStepperMotor::initFOC()
 }
 
 // Encoder alignment to electrical 0 angle
-int HybridStepperMotor::alignSensor()
+int HybridStepperMotorOld::alignSensor()
 {
   int exit_flag = 1; // success
   SIMPLEFOC_DEBUG("MOT: Align sensor.");
@@ -226,7 +226,7 @@ int HybridStepperMotor::alignSensor()
 
 // Encoder alignment the absolute zero angle
 // - to the index
-int HybridStepperMotor::absoluteZeroSearch()
+int HybridStepperMotorOld::absoluteZeroSearch()
 {
 
   SIMPLEFOC_DEBUG("MOT: Index search...");
@@ -261,7 +261,7 @@ int HybridStepperMotor::absoluteZeroSearch()
 
 // Iterative function looping FOC algorithm, setting Uq on the Motor
 // The faster it can be run the better
-void HybridStepperMotor::loopFOC()
+void HybridStepperMotorOld::loopFOC()
 {
 
   // update sensor - do this even in open-loop mode, as user may be switching between modes and we could lose track
@@ -293,7 +293,7 @@ void HybridStepperMotor::loopFOC()
 // It runs either angle, velocity or voltage loop
 // - needs to be called iteratively it is asynchronous function
 // - if target is not set it uses motor.target value
-void HybridStepperMotor::move(float new_target)
+void HybridStepperMotorOld::move(float new_target)
 {
 
   // set internal target variable
@@ -394,7 +394,7 @@ void HybridStepperMotor::move(float new_target)
   }
 }
 
-void HybridStepperMotor::setPhaseVoltage(float Uq, float Ud, float angle_el)
+void HybridStepperMotorOld::setPhaseVoltage(float Uq, float Ud, float angle_el)
 {
   angle_el = _normalizeAngle(angle_el);
   float _ca = _cos(angle_el);
@@ -473,7 +473,7 @@ void HybridStepperMotor::setPhaseVoltage(float Uq, float Ud, float angle_el)
 // Function (iterative) generating open loop movement for target velocity
 // - target_velocity - rad/s
 // it uses voltage_limit variable
-float HybridStepperMotor::velocityOpenloop(float target_velocity)
+float HybridStepperMotorOld::velocityOpenloop(float target_velocity)
 {
   // get current timestamp
   unsigned long now_us = _micros();
@@ -509,7 +509,7 @@ float HybridStepperMotor::velocityOpenloop(float target_velocity)
 // Function (iterative) generating open loop movement towards the target angle
 // - target_angle - rad
 // it uses voltage_limit and velocity_limit variables
-float HybridStepperMotor::angleOpenloop(float target_angle)
+float HybridStepperMotorOld::angleOpenloop(float target_angle)
 {
   // get current timestamp
   unsigned long now_us = _micros();
