@@ -28,10 +28,11 @@ void CalibratedSensor::init()
 // Retrieve the calibrated sensor angle
 float CalibratedSensor::getSensorAngle()
 {
-	// raw encoder position e.g. 0-2PI
-	float raw_angle = _wrapped.getMechanicalAngle();
+    // raw encoder position e.g. 0-2PI
+    float raw_angle = fmodf(_wrapped.getMechanicalAngle(), _2PI);
+    raw_angle += raw_angle < 0 ? _2PI:0;
 
-	// Calculate the resolution of the LUT in radians
+    // Calculate the resolution of the LUT in radians
     float lut_resolution = _2PI / n_lut;
     // Calculate LUT index
     int lut_index = raw_angle / lut_resolution;
@@ -41,7 +42,7 @@ float CalibratedSensor::getSensorAngle()
     float y1 = calibrationLut[(lut_index + 1) % n_lut];
 
     // Linearly interpolate between the y0 and y1 values
-	// Calculate the relative distance from the y0 (raw_angle has to be between y0 and y1)
+    // Calculate the relative distance from the y0 (raw_angle has to be between y0 and y1)
     // If distance = 0, interpolated offset = y0
     // If distance = 1, interpolated offset = y1
     float distance = (raw_angle - lut_index * lut_resolution) / lut_resolution;
@@ -85,7 +86,7 @@ void CalibratedSensor::filter_error(float* error, float &error_mean, int n_ticks
 
 }
 
-void CalibratedSensor::calibrate(FOCMotor &motor, float* lut, float zero_electric_angle, Direction senor_direction)
+void CalibratedSensor::calibrate(FOCMotor &motor, float* lut, float zero_electric_angle, Direction senor_direction, int settle_time_ms)
 {
 	// if the LUT is already defined, skip the calibration
 	if(lut != nullptr){
@@ -170,7 +171,7 @@ void CalibratedSensor::calibrate(FOCMotor &motor, float* lut, float zero_electri
 		}
 
 		// delay to settle in position before taking a position sample
-		_delay(30);
+		_delay(settle_time_ms);
 		_wrapped.update();
 		// calculate the error
 		theta_actual = motor.sensor_direction*(_wrapped.getAngle() - theta_init);
@@ -210,7 +211,7 @@ void CalibratedSensor::calibrate(FOCMotor &motor, float* lut, float zero_electri
 		}
 
 		// delay to settle in position before taking a position sample
-		_delay(30);
+		_delay(settle_time_ms);
 		_wrapped.update();
 		// calculate the error
 		theta_actual = motor.sensor_direction*(_wrapped.getAngle() - theta_init);
