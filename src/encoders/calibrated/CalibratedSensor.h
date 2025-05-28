@@ -23,7 +23,7 @@ public:
     /**
     * Calibrate method computes the LUT for the correction
     */
-    virtual void calibrate(FOCMotor& motor, float* lut = nullptr, float zero_electric_angle = 0.0, Direction senor_direction= Direction::CW);
+    virtual void calibrate(FOCMotor& motor, float* lut = nullptr, float zero_electric_angle = 0.0, Direction senor_direction= Direction::CW, int settle_time_ms = 30);
 
     // voltage to run the calibration: user input
     float voltage_calibration = 1;    
