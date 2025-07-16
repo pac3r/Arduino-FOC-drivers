@@ -25,6 +25,8 @@ class STM32HWEncoder : public Sensor {
     bool initialized = false;
     uint32_t cpr;  //!< encoder cpr number
     PinName _pinA, _pinB, _pinI;
+    bool index_found;
+    uint32_t index_polarity = RISING;
     
   protected:
     float getSensorAngle() override;
