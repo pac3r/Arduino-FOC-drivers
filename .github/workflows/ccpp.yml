@@ -94,7 +94,7 @@ jobs:
             report-name-suffix: stm32_nucleo_f411re
           - fqbn: pico:rp2040:rpipico                 # rpi pico
             platforms: |
-              - name: pico:rp2040:rpipico
+              - name: pico:rp2040
                 source-url: "https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json"
             sketch-paths: |
               - examples/drivers/drv8316
