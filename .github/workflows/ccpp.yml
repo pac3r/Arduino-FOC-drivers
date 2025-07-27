@@ -92,13 +92,13 @@ jobs:
               - examples/encoders/linearhall
               - examples/encoders/mt6816
             report-name-suffix: stm32_nucleo_f411re
-          - fqbn: pico:rp2040:rpipico                 # rpi pico
+          - fqbn: rp2040:rp2040:rpipico                 # rpi pico
             platforms: |
-              - name: pico:rp2040
+              - name: rp2040:rp2040
                 source-url: "https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json"
             sketch-paths: |
               - examples/drivers/drv8316
-              - examples/encoders/calibrated_sensor/calibration_save
+              - examples/encoders/calibrated_sensor
               - examples/encoders/linearhall
               - examples/encoders/mt6816
             report-name-suffix: arduino_mbed_rp2040_pico
