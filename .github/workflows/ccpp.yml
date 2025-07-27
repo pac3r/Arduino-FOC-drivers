@@ -22,7 +22,6 @@ jobs:
             sketch-paths: |
               - examples/drivers/simplefocnano/simplefocnano_atmega
               - examples/encoders/linearhall
-              - examples/drivers
             report-name-suffix: arduino_avr_nano
           - fqbn: arduino:sam:arduino_due_x                # arduino due
             platforms: |
