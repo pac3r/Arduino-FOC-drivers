@@ -70,6 +70,8 @@ jobs:
           - name: "Arduino-FOC"
             source-url: "https://github.com/simplefoc/Arduino-FOC.git"
             version: dev
+          - name: "Arduino-FOC-Drivers"
+            source-path: .
         sketch-paths: |
           - examples
         enable-deltas-report: true
