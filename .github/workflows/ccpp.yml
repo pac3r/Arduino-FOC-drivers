@@ -74,7 +74,7 @@ jobs:
             report-name-suffix: esp32_esp32s2
           - fqbn: STMicroelectronics:stm32:GenF1:pnum=BLUEPILL_F103C8   # stm32 bluepill
             platforms: |
-              - name: 
+              - name: STMicroelectronics:stm32
                 source-url: "https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json"
             sketch-paths: |
               - examples/drivers/drv8316
