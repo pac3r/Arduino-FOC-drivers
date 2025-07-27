@@ -76,9 +76,8 @@ jobs:
                 source-url: "https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json"
             sketch-paths: |
               - examples/drivers/drv8316
-              - examples/encoders/calibrated_sensor
+              - examples/encoders/calibrated_sensor/calibration_save
               - examples/encoders/linearhall
-              - examples/encoders/mt6816
             report-name-suffix: stm32_genf1_bluepill_f103c8
           - fqbn: STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE # stm32 nucleo
             platforms: |
@@ -96,7 +95,7 @@ jobs:
                 source-url: "https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json"
             sketch-paths: |
               - examples/drivers/drv8316
-              - examples/encoders/calibrated_sensor
+              - examples/encoders/calibrated_sensor/calibration_save
               - examples/encoders/linearhall
               - examples/encoders/mt6816
             report-name-suffix: arduino_mbed_rp2040_pico
