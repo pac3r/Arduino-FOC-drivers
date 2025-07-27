@@ -91,9 +91,9 @@ jobs:
               - examples/encoders/linearhall
               - examples/encoders/mt6816
             report-name-suffix: stm32_nucleo_f411re
-          - fqbn: arduino:rp2040:pico                 # rpi pico
+          - fqbn: pico:rp2040:rpipico                 # rpi pico
             platforms: |
-              - name: STMicroelectronics:stm32
+              - name: pico:rp2040:rpipico
                 source-url: "https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json"
             sketch-paths: |
               - examples/drivers/drv8316
