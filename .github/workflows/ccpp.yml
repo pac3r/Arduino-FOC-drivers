@@ -31,7 +31,6 @@ jobs:
               - examples/encoders/calibrated_sensor/calibration_save
               - examples/encoders/linearhall
               - examples/encoders/mt6816
-              - examples/encoders/smoothing
             report-name-suffix: arduino_sam_due
           - fqbn: arduino:samd:nano_33_iot                 # samd21
             platforms: |
