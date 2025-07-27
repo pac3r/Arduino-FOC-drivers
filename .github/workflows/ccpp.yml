@@ -27,11 +27,12 @@ jobs:
             platforms: |
               - name: arduino:sam
             sketch-paths: |
+              - examples/drivers/simplefocnano/simplefocnano_atmega
               - examples/drivers/drv8316
               - examples/encoders/calibrated_sensor/calibration_save
               - examples/encoders/linearhall
               - examples/encoders/mt6816
-              - examples/smoothing
+              - examples/encoders/smoothing
             report-name-suffix: arduino_sam_due
           - fqbn: arduino:samd:nano_33_iot                 # samd21
             platforms: |
