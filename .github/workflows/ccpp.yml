@@ -66,7 +66,7 @@ jobs:
       with:
         fqbn: ${{ matrix.board.fqbn }}
         platforms: ${{ matrix.board.platforms }}
-        libraries:
+        libraries: |
           - name: "Arduino-FOC"
             source-url: "https://github.com/simplefoc/Arduino-FOC.git"
             version: dev
