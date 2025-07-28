@@ -1,10 +1,10 @@
 /**
- *  @file HybridStepperMotor.h
+ *  @file HybridStepperMotorOld.h
  *
  */
 
-#ifndef HybridStepperMotor_h
-#define HybridStepperMotor_h
+#ifndef HybridStepperMotorOld_h
+#define HybridStepperMotorOld_h
 
 #include "Arduino.h"
 #include "common/base_classes/FOCMotor.h"
@@ -17,17 +17,17 @@
 /**
  Stepper Motor class
 */
-class HybridStepperMotor : public FOCMotor
+class HybridStepperMotorOld : public FOCMotor
 {
 public:
     /**
-      HybridStepperMotor class constructor
+      HybridStepperMotorOld class constructor
       @param pp  pole pair number
      @param R  motor phase resistance - [Ohm]
      @param KV  motor KV rating (1/K_bemf) - rpm/V
      @param L  motor phase inductance - [H]
     */
-    HybridStepperMotor(int pp, float R = NOT_SET, float KV = NOT_SET, float L = NOT_SET);
+    HybridStepperMotorOld(int pp, float R = NOT_SET, float KV = NOT_SET, float L = NOT_SET);
 
     /**
      * Function linking a motor and a foc driver
@@ -63,7 +63,7 @@ public:
     void loopFOC() override;
 
     /**
-     * Function executing the control loops set by the controller parameter of the HybridStepperMotor.
+     * Function executing the control loops set by the controller parameter of the HybridStepperMotorOld.
      *
      * @param target  Either voltage, angle or velocity based on the motor.controller
      *                If it is not set the motor will use the target set in its variable motor.target

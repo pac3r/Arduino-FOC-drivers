@@ -4,13 +4,20 @@
 #include "common/base_classes/Sensor.h"
 #include "BLDCMotor.h"
 #include "common/base_classes/FOCMotor.h"
+#include "common/foc_utils.h"
 
 
 class CalibratedSensor: public Sensor{
 
 public:
-    // constructor of class with pointer to base class sensor and driver
-    CalibratedSensor(Sensor& wrapped);
+    /**
+     * @brief Constructor of class with pointer to base class sensor and driver
+     * @param wrapped the wrapped sensor which needs calibration
+     * @param n_lut the number of entries in the lut
+     * @param lut the look up table (if null, the lut will be allocated on the heap)
+     */
+    CalibratedSensor(Sensor& wrapped, int n_lut = 200, float* lut = nullptr);
+
     ~CalibratedSensor();
 
     /*
@@ -21,11 +28,10 @@ public:
     /**
     * Calibrate method computes the LUT for the correction
     */
-    virtual void calibrate(BLDCMotor& motor);
+    virtual void calibrate(FOCMotor& motor, int settle_time_ms = 30);
 
     // voltage to run the calibration: user input
-    float voltage_calibration = 1;                              
-
+    float voltage_calibration = 1;    
 protected:
 
     /**
@@ -42,20 +48,17 @@ protected:
     * delegate instance of Sensor class
     */
     Sensor& _wrapped;
-    
-     // lut size, currently constan. Perhaps to be made variable by user?
-    const int  n_lut { 128 } ;
-    // create pointer for lut memory
-    float* calibrationLut = new float[n_lut]();
 
-    // Init inital angles
-    float theta_actual { 0.0 };
-    float elecAngle { 0.0 };
-    float elec_angle { 0.0 };
-    float theta_absolute_post { 0.0 };
-    float theta_absolute_init { 0.0 };
-    float theta_init { 0.0 };
-    float avg_elec_angle { 0.0 };
+    void alignSensor(FOCMotor &motor);
+    void filter_error(float* error, float &error_mean, int n_ticks, int window);
+    
+     // lut size - settable by the user
+    int  n_lut { 200 } ;
+    // pointer for lut memory 
+    // depending on the size of the lut
+    // will be allocated in the calibrate function if not given.
+    bool allocated;
+    float* calibrationLut;
 };
 
 #endif

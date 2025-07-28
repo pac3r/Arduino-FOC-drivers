@@ -81,11 +81,69 @@ void setup() {
 
 Please see the more complete [example](https://github.com/simplefoc/Arduino-FOC-drivers/blob/master/examples/encoders/calibrated/sensor_calibration.ino) in our examples directory.
 
+## EDIT March 2025
 
-## Roadmap
+The code has been rewritten to reduce its memory footprint and allow more flexible Lookup table (LUT) sizing. 
+Additionally, the calibrated sensor class now supports providing the saved LUT as a paramer for calibration. This allows you to save the LUT and load it on startup to avoid recalibration on each startup.
 
-Possible future improvements we've thought about:
+Once you do the calibration once, it will output something like this:
 
-- Improve memory usage and performance
-- Make calibration able to be saved/restored
+```
+...
 
+Starting Sensor Calibration.
+MOT: Align sensor.
+MOT: sensor_direction==CCW
+MOT: PP check: OK!
+MOT: Zero elec. angle: 3.17
+MOT: No current sense.
+MOT: Ready.Rotating: CCW
+Rotating: CW
+Average Zero Electrical Angle: 4.01
+Constructing LUT.
+
+float calibrationLut[50] = {0.003486, 0.005795, 0.007298, 0.008303, 0.008771, 0.007551, 0.005986, 0.004115, 0.001361, -0.001392, -0.004069, -0.007474, -0.010420, -0.013135, -0.014891, -0.017415, -0.018328, -0.019125, -0.018849, -0.017193, -0.015152, -0.012422, -0.008579, -0.003970, 0.000678, 0.005211, 0.009821, 0.013280, 0.016470, 0.018127, 0.018376, 0.016969, 0.016716, 0.015466, 0.013602, 0.011431, 0.008646, 0.006092, 0.003116, 0.000409, -0.002342, -0.004367, -0.005932, -0.006998, -0.007182, -0.007175, -0.006017, -0.003746, -0.001783, 0.000948};
+float zero_electric_angle = 4.007072;
+Direction sensor_direction = Direction::CCW;
+Sensor Calibration Done
+...
+```
+
+The LUT and sensor's zero angle and direction are outputed by the calibration process to the Serial terminal. So you can copy and paste them into your code.
+
+Your code will look something like this:
+
+```c++
+
+// number of LUT entries
+const N_LUT = 50;
+// Lookup table that has been ouptut from the calibration process
+float calibrationLut[50] = {0.003486, 0.005795, 0.007298, 0.008303, 0.008771, 0.007551, 0.005986, 0.004115, 0.001361, -0.001392, -0.004069, -0.007474, -0.010420, -0.013135, -0.014891, -0.017415, -0.018328, -0.019125, -0.018849, -0.017193, -0.015152, -0.012422, -0.008579, -0.003970, 0.000678, 0.005211, 0.009821, 0.013280, 0.016470, 0.018127, 0.018376, 0.016969, 0.016716, 0.015466, 0.013602, 0.011431, 0.008646, 0.006092, 0.003116, 0.000409, -0.002342, -0.004367, -0.005932, -0.006998, -0.007182, -0.007175, -0.006017, -0.003746, -0.001783, 0.000948};
+float zero_electric_angle = 4.007072;
+Direction sensor_direction = Direction::CCW;
+
+// provide the sensor class and the number of points in the LUT
+CalibratedSensor sensor_calibrated = CalibratedSensor(sensor, N_LUT);
+
+... 
+
+void setup() {
+  ...
+  // as LUT is provided to this function
+  sensor_calibrated.calibrate(motor, calibrationLut, zero_eletrical_angle, sensor_direction);
+  ...
+
+  motor.linkSensor(&sensor_calibrated);
+
+  ... 
+  motor.initFOC();
+  ....
+}
+
+
+```
+
+## Future work
+
+- Reduce the LUT size by using a more efficient LUT type - maybe pass to uint16_t
+- Use a more eficient LUT interpolation method - maybe a polynomial interpolation
