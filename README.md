@@ -10,11 +10,18 @@ The intent is to keep the core of SimpleFOC clean, and thus easy to maintain, un
 
 ## New Release
 
-v1.0.9 - Released xxx 2024, for Simple FOC 2.3.x or later
+v1.0.9 - Released July 2025, for Simple FOC 2.3.5 or later
 
 
 What's changed since 1.0.8?
+- FluxObserverSensor for sensorless FOC thanks to [@Candas1](https://github.com/Candas1)
+- AS5600 fast mode support
+- Improvements to SmoothingSensor and LinearHall thanks to [@dekutree64](https://github.com/dekutree64)
+- Improvements to CalibratedSensor and HybridStepper thanks to [@askuric](https://github.com/askuric)
 - AS5600 driver bugfix thanks to [@zbas](https://github.com/zbas)
+- Calibrated sensor improvements thanks to [@Schnilz](https://github.com/Schnilz)
+- ESP32HWEncoder bugfix thanks to [@AndBindStyle](https://github.com/AndBondStyle)
+- STM32HWEncoder fix thanks to [@AntonEvmenenko](https://github.com/AntonEvmenenko)
 - Bugfixes [included](https://github.com/simplefoc/Arduino-FOC-drivers/issues?q=milestone%3A1.0.9)
 
 
