@@ -75,11 +75,13 @@ public:
 	uint16_t enableOneTimeProgramming();
 	uint16_t programZero();
 
+	bool initDone() const { return spi != nullptr; }
+
 private:
 
 	uint16_t nop();
 	uint16_t spi_transfer16(uint16_t outdata);
-	SPIClass* spi;
+	SPIClass* spi = nullptr;
 	SPISettings settings;
 	bool errorflag = false;
 	int nCS = -1;
