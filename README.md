@@ -1,3 +1,6 @@
+_This fork adds the following features:_
+- _DRV8316: support for a GPIO expander_
+
 # SimpleFOC Driver and Support Library
 
 ![Library Compile](https://github.com/simplefoc/Arduino-FOC-drivers/workflows/Library%20Compile/badge.svg)
