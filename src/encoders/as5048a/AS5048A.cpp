@@ -16,6 +16,7 @@ AS5048A::~AS5048A() {
 
 
 void AS5048A::init(SPIClass* _spi) {
+  	assert(spi == nullptr && "init already done");	
 	spi = _spi;
 	if (nCS>=0) {
 		pinMode(nCS, OUTPUT);
